@@ -4,7 +4,7 @@
 import GPy
 import numpy as np
 import time
-from ..acquisitions import AcquisitionEI, AcquisitionMPI, AcquisitionLCB, AcquisitionEI_MCMC, AcquisitionMPI_MCMC, AcquisitionLCB_MCMC, AcquisitionLP
+from ..acquisitions import AcquisitionEI, AcquisitionMPI, AcquisitionLCB, AcquisitionEI_MCMC, AcquisitionMPI_MCMC, AcquisitionLCB_MCMC, AcquisitionLP, AcquisitionGES
 from ..core.bo import BO
 from ..core.task.space import Design_space, bounds_to_space
 from ..core.task.objective import SingleObjective
@@ -351,6 +351,9 @@ class BayesianOptimization(BO):
 
         elif self.acquisition_type =='LCB_MCMC':
             return AcquisitionLCB_MCMC(self.model, self.space, self.acquisition_optimizer, self.cost.cost_withGradients, self.acquisition_weight)
+
+        elif self.acquisition_type =='GES':
+            return AcquisitionGES(self.model, self.space, self.acquisition_optimizer, self.cost.cost_withGradients, self.acquisition_jitter)
 
         else:
             raise Exception('Invalid acquisition selected.')

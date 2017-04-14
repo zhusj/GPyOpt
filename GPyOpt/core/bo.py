@@ -108,6 +108,8 @@ class BO(object):
             self.suggested_sample = self._compute_next_evaluations()
             
             if not ((self.num_acquisitions < self.max_iter) and (self._distance_last_evaluations() > self.eps)): 
+                print "stoppping!!!\n"
+
                 break
 
             # --- Augment X

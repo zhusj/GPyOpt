@@ -77,8 +77,9 @@ class GPModel(BOModel):
         """
 
         if self.normalize_Y:
-            Y_all = (Y_all - Y_all.mean())/(Y_all.std())
-        if self.model is None: self._create_model(X_all, Y_all)
+            Y_all = (Y_all - Y_all.mean())/(Y_all.std()+1e-9)
+        if self.model is None: 
+            self._create_model(X_all, Y_all)
         else: 
             self.model.set_XY(X_all, Y_all)
             
@@ -88,12 +89,12 @@ class GPModel(BOModel):
         else:
             self.model.optimize_restarts(num_restarts=self.optimize_restarts, optimizer=self.optimizer, max_iters = self.max_iters, verbose=self.verbose)
 
-    def predict(self, X):
+    def predict(self, X, full_cov = False):
         """
         Predictions with the model. Returns posterior means and standard deviations at X. Note that this is different in GPy where the variances are given. 
         """
         if X.ndim==1: X = X[None,:]
-        m, v = self.model.predict(X)
+        m, v = self.model.predict(X, full_cov = full_cov)
         v = np.clip(v, 1e-10, np.inf)
         return m, np.sqrt(v)
 

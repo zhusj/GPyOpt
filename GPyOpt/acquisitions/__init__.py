@@ -9,6 +9,8 @@ from .MPI_mcmc import AcquisitionMPI_MCMC
 from .LCB import AcquisitionLCB
 from .LCB_mcmc import AcquisitionLCB_MCMC
 from .LP import AcquisitionLP
+from .GES import AcquisitionGES
+
 
 def select_acquisition(name):
     '''
@@ -16,6 +18,8 @@ def select_acquisition(name):
     '''
     if name == 'EI':
         return AcquisitionEI
+    if name == 'GES':
+        return AcquisitionGES
     elif name == 'EI_MCMC':
         return AcquisitionEI_MCMC
     elif name == 'LCB':

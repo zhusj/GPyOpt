@@ -3,6 +3,7 @@
 
 from .base import AcquisitionBase
 from ..util.general import get_quantiles
+import numpy as np
 
 class AcquisitionEI(AcquisitionBase):
     """
@@ -33,10 +34,22 @@ class AcquisitionEI(AcquisitionBase):
         """
         Computes the Expected Improvement per unit of cost
         """
+
+        # if x.shape[0]>1000:
+        #     print "x,shape: ", x.shape
+        # else:
+        #     print "x: ", x
+
         m, s = self.model.predict(x)
         fmin = self.model.get_fmin()
         phi, Phi, _ = get_quantiles(self.jitter, fmin, m, s)    
         f_acqu = (fmin - m + self.jitter) * Phi + s * phi
+
+        # print "f_acqu.shape: ", f_acqu.shape
+
+        # if f_acqu.shape[0] < 2:
+        # print "f_acqu: ", np.sum(np.sum(f_acqu))
+
         return f_acqu
 
     def _compute_acq_withGradients(self, x):
