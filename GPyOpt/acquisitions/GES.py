@@ -5,6 +5,8 @@ from .base import AcquisitionBase
 from ..util.general import get_quantiles
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 class AcquisitionGES(AcquisitionBase):
     """
     Greedy entropy search acquisition function
@@ -37,18 +39,42 @@ class AcquisitionGES(AcquisitionBase):
 
         # print "x,shape: ", x.shape
         # if x.shape[0]>1:
-        x = x[:1000,:]  
-        # print "x.shape: ", x
-        m, s = self.model.predict(x, full_cov=True)
+
+
+        # x = x[:1000,:]  
+        # print "x: ", x
+        m, V = self.model.predict(x, full_cov=True)
+
+        # if isinstance(V, np.ndarray):
+        #     V[V<1e-10] = 1e-10
+        # elif V< 1e-10:
+        #     V = 1e-10
         # fmin = self.model.get_fmin()
       
-        self.pmax = self.joint_pmax(m, s, 500)
-        self.logP = np.log(self.pmax)
-        eps = 1e-5
-        H = -np.multiply(self.pmax, (self.logP+eps))
+        self.pmin = self.joint_pmin(m, V, 500)
+        self.logP = np.log(self.pmin)
+        # eps = 1e-9
+        # H = -np.multiply(self.pmin, (self.logP+eps))
+        H = -np.multiply(self.pmin, (self.logP))
   
         f_acqu = np.array([H])
         f_acqu = f_acqu.T
+        # print "f_acqu: ", f_acqu
+
+
+
+        # m, v = self.model.predict(x)
+        # print "v: ", v
+        # raw_input("press to continue...")
+
+        # f_acqu = v
+
+
+
+
+
+
+
         self.x = x
         self.f_acqu = f_acqu
             # print "f_acqu.shape: ", f_acqu  
@@ -66,13 +92,47 @@ class AcquisitionGES(AcquisitionBase):
         #         # print "f_acqu: ", f_acqu
         #         self. lasf_f_acqu = f_acqu
             
-        #     print "f_acqu.shape: ", f_acqu.shape        
+        # print "f_acqu.shape: ", f_acqu.shape   
 
-        # print "f_acqu: ", np.sum(np.sum(f_acqu))
+        # plt.plot(x)
+        # raw_input("Press Enter to continue...")
+
+        # print "f_acqu: ", f_acqu
+        # raw_input("press to continue...")
 
 
         return f_acqu
   
+    # def _compute_acq_withGradients(self, x):
+    #     """
+    #     Computes the Greedy entropy search and its derivative (has a very easy derivative!)
+    #     """
+    #     f_acqu = self._compute_acq(x)
+
+        
+    #     D = x.shape[1]
+    #     e = 1.0e-5
+    #     ddHdx = np.zeros((1, D))
+    #     for d in range(D):
+    #         # ## First part:
+    #         y = np.array(x)
+    #         y[0, d] += e
+    #         dHy1 = self._compute_acq(x)
+    #         # ## Second part:
+    #         y = np.array(x)
+    #         y[0, d] -= e
+    #         dHy2 = self._compute_acq(x)
+
+    #         ddHdx[0, d] = np.divide((dHy1 - dHy2), 2 * e)
+    #         ddHdx = -ddHdx
+    #     # endfor
+    #     if len(ddHdx.shape) == 3:
+    #         df_acqu = ddHdx
+    #     else:
+    #         df_acqu = np.array([ddHdx])
+
+    #     return f_acqu, df_acqu
+
     def _compute_acq_withGradients(self, x):
         """
         Computes the Greedy entropy search and its derivative (has a very easy derivative!)
@@ -120,7 +180,70 @@ class AcquisitionGES(AcquisitionBase):
         # Return the fantasized pmin
         return mc_part.joint_pmin(Mb_new, Vb_new, self.Nf)
 
-    def joint_pmax(self, m, V, Nf):
+
+
+
+    # def joint_pmin(self, m, V, Nf):
+    #     """
+    #     Computes the probability of every given point to be the minimum
+    #     by sampling function and count how often each point has the
+    #     smallest function value.
+    #     Parameters
+    #     ----------
+    #     M: np.ndarray(N, 1)
+    #         Mean value of each of the N points.
+    #     V: np.ndarray(N, N)
+    #         Covariance matrix for all points
+    #     Nf: int 
+    #         Number of function samples that will be drawn at each point
+    #     Returns
+    #     -------
+    #     np.ndarray(N,1)
+    #         pmin distribution
+    #     """
+    #     Nb = m.shape[0]
+    #     noise = 0
+    #     while(True):
+    #         try:
+    #             cV = np.linalg.cholesky(V + noise * np.eye(V.shape[0]))
+    #             break
+    #         except np.linalg.LinAlgError:
+
+    #             if noise == 0:
+    #                 noise = 1e-10
+    #             if noise == 10000:
+    #                 raise np.linalg.LinAlgError('Cholesky '
+    #                     'decomposition failed.')
+    #             else:
+    #                 noise *= 10
+
+    #     if noise > 0:
+    #         logger.error("Add %f noise on the diagonal." % noise)
+    #     # Draw new function samples from the innovated GP
+    #     # on the representer points
+    #     F = np.random.multivariate_normal(mean=np.zeros(Nb), cov=np.eye(Nb), size=Nf)
+    #     funcs = np.dot(cV, F.T)
+    #     funcs = funcs[:, :, None]
+
+    #     m = m[:, None, :]
+    #     funcs = m + funcs
+
+    #     funcs = funcs.reshape(funcs.shape[0], funcs.shape[1] * funcs.shape[2])
+
+    #     # Determine the minima for each function sample
+    #     mins = np.argmin(funcs, axis=0)
+    #     c = np.bincount(mins)
+
+    #     # Count how often each representer point was the minimum
+    #     min_count = np.zeros((Nb,))
+    #     min_count[:len(c)] += c
+    #     pmin = (min_count / funcs.shape[1])
+    #     pmin[np.where(pmin < 1e-70)] = 1e-70
+
+    #     return pmin
+
+
+    def joint_pmin(self, m, V, Nf):
         """
         Computes the probability of every given point to be the minimum
         by sampling function and count how often each point has the
@@ -138,54 +261,39 @@ class AcquisitionGES(AcquisitionBase):
         np.ndarray(N,1)
             pmin distribution
         """
-        Nb = m.shape[0]
-        # noise = 0
-        # while(True):
-        #     try:
-        #         cV = np.linalg.cholesky(V + noise * np.eye(V.shape[0]))
-        #         break
-        #     except np.linalg.LinAlgError:
 
-        #         if noise == 0:
-        #             noise = 1e-10
-        #         if noise == 10000:
-        #             raise np.linalg.LinAlgError('Cholesky '
-        #                 'decomposition failed.')
-        #         else:
-        #             noise *= 10
+        Nb = m.shape[0] 
 
-        # if noise > 0:
-        #     logger.error("Add %f noise on the diagonal." % noise)
-        # Draw new function samples from the innovated GP
-        # on the representer points
-        # F = np.random.multivariate_normal(mean=np.zeros(Nb), cov=np.eye(Nb), size=Nf)
+
+
+        # cV = np.linalg.cholesky(V)
+        F = np.random.multivariate_normal(mean=np.zeros(Nb), cov=np.eye(Nb), size=Nf)
         
-        m1 = m.reshape((Nb,))
-        # if Nb > 1:
-        #     print "m: ", m.shape
-        #     print "V: ", V.shape
+        print "F:", F.shape
+        print "V:", V.shape
 
 
-        #     m1 = m1[:1000]
-        #     V = V[:1000,:1000]
-        #     m = m[:1000,:]
-        #     print "m1: ", m1.shape
 
-        funcs = np.random.multivariate_normal(mean=m1, cov=V, size=Nf)
-
-
-        try:
-            funcs = np.random.multivariate_normal(mean=m1, cov=V, size=Nf)
-        except ValueError:
-            print "m1, V, Nf: ", m1, V, Nf
-        funcs = funcs.T
-        # print "funcs:", funcs.shape
-        # funcs = np.dot(cV, F.T)
+        funcs = np.dot(V, F.T)
         funcs = funcs[:, :, None]
-        # print "funcs:", funcs.shape
 
         m = m[:, None, :]
         funcs = m + funcs
+
+
+
+        # m1 = m.reshape((Nb,))
+        # try:
+        #     funcs = np.random.multivariate_normal(mean=m1, cov=V, size=Nf)
+        # except np.linalg.LinAlgError:
+        #     print "m1, V, Nf: ", m1, V, Nf
+        # funcs = funcs.T
+        # # print "funcs:", funcs
+        # # funcs = np.dot(cV, F.T)
+        # funcs = funcs[:, :, None]
+
+
+
         # print "funcs:", funcs.shape
 
         funcs = funcs.reshape(funcs.shape[0], funcs.shape[1] * funcs.shape[2])
@@ -201,21 +309,8 @@ class AcquisitionGES(AcquisitionBase):
         pmin = (min_count / funcs.shape[1])
         pmin[np.where(pmin < 1e-70)] = 1e-70
 
+        # print "pmin:", pmin
+
+        # raw_input("press to continue...")
+
         return pmin
-
-
-        
-        # # Determine the minima for each function sample
-        # maxs = np.argmax(funcs, axis=0)
-        # c = np.bincount(maxs)
-
-        # # Count how often each representer point was the minimum
-        # max_count = np.zeros((Nb,))
-        # max_count[:len(c)] += c
-        # pmax = (max_count / funcs.shape[1])
-        # pmax[np.where(pmax < 1e-70)] = 1e-70
-
-        # if pmax.shape[0] < 2:
-        #     print "pmax: ", pmax
-
-        # return pmax

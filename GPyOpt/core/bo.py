@@ -107,7 +107,9 @@ class BO(object):
             # --- Update and optimize acquisition and compute the exploration level in the next evaluation
             self.suggested_sample = self._compute_next_evaluations()
             
-            if not ((self.num_acquisitions < self.max_iter) and (self._distance_last_evaluations() > self.eps)): 
+            if not ((self.num_acquisitions < self.max_iter)): # and (self._distance_last_evaluations() > self.eps)): 
+            # if not ((self.num_acquisitions < self.max_iter)): 
+
                 print "stoppping!!!\n"
 
                 break
