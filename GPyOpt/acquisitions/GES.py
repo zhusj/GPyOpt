@@ -38,36 +38,34 @@ class AcquisitionGES(AcquisitionBase):
         """
 
         # print "x,shape: ", x.shape
-        # if x.shape[0]>1:
+        if x.shape[0]>1:
+            # x = x[:1000,:]  
+            # print "x: ", x
+            m, V = self.model.predict(x, full_cov=True)
 
-
-        # x = x[:1000,:]  
-        # print "x: ", x
-        m, V = self.model.predict(x, full_cov=True)
-
-        # if isinstance(V, np.ndarray):
-        #     V[V<1e-10] = 1e-10
-        # elif V< 1e-10:
-        #     V = 1e-10
-        # fmin = self.model.get_fmin()
+            # if isinstance(V, np.ndarray):
+            #     V[V<1e-10] = 1e-10
+            # elif V< 1e-10:
+            #     V = 1e-10
+            # fmin = self.model.get_fmin()
+          
+            self.pmin = self.joint_pmin(m, V, 500)
+            self.logP = np.log(self.pmin)
+            # eps = 1e-9
+            # H = -np.multiply(self.pmin, (self.logP+eps))
+            H = -np.multiply(self.pmin, (self.logP))
       
-        self.pmin = self.joint_pmin(m, V, 500)
-        self.logP = np.log(self.pmin)
-        # eps = 1e-9
-        # H = -np.multiply(self.pmin, (self.logP+eps))
-        H = -np.multiply(self.pmin, (self.logP))
-  
-        f_acqu = np.array([H])
-        f_acqu = f_acqu.T
-        # print "f_acqu: ", f_acqu
+            f_acqu = np.array([H])
+            f_acqu = f_acqu.T
+            # print "f_acqu: ", f_acqu
 
 
 
-        # m, v = self.model.predict(x)
-        # print "v: ", v
-        # raw_input("press to continue...")
+            # m, v = self.model.predict(x)
+            # print "v: ", v
+            # raw_input("press to continue...")
 
-        # f_acqu = v
+            # f_acqu = v
 
 
 
@@ -75,33 +73,37 @@ class AcquisitionGES(AcquisitionBase):
 
 
 
-        self.x = x
-        self.f_acqu = f_acqu
-            # print "f_acqu.shape: ", f_acqu  
+            self.x = x
+            self.f_acqu = f_acqu
 
-        # else:
-        #     print "x: ", x            
-
-        #     if np.isnan(x[0][0]):
-        #         f_acqu = self. lasf_f_acqu
-        #     else:
-        #         i,j = np.where(self.x==x[0][0])
-        #         print "i,j: ", i,j
-        #         f_acqu = self.f_acqu[i,j]
-        #         f_acqu = np.array([f_acqu,])
-        #         # print "f_acqu: ", f_acqu
-        #         self. lasf_f_acqu = f_acqu
+            self.max_f_acqu = np.max(f_acqu)
             
-        # print "f_acqu.shape: ", f_acqu.shape   
+                # print "f_acqu.shape: ", f_acqu  
 
-        # plt.plot(x)
-        # raw_input("Press Enter to continue...")
+            # else:
+            #     print "x: ", x            
 
-        # print "f_acqu: ", f_acqu
-        # raw_input("press to continue...")
+            #     if np.isnan(x[0][0]):
+            #         f_acqu = self. lasf_f_acqu
+            #     else:
+            #         i,j = np.where(self.x==x[0][0])
+            #         print "i,j: ", i,j
+            #         f_acqu = self.f_acqu[i,j]
+            #         f_acqu = np.array([f_acqu,])
+            #         # print "f_acqu: ", f_acqu
+            #         self. lasf_f_acqu = f_acqu
+                
+            # print "f_acqu.shape: ", f_acqu.shape   
 
+            # plt.plot(x)
+            # raw_input("Press Enter to continue...")
+            # print "self.pmin:", self.pmin
+            # print "f_acqu: ", f_acqu
+            # print "self.max_f_acqu: ", self.max_f_acqu
 
-        return f_acqu
+            return f_acqu
+        else:
+            return np.array([self.max_f_acqu])
   
     # def _compute_acq_withGradients(self, x):
     #     """
@@ -269,8 +271,7 @@ class AcquisitionGES(AcquisitionBase):
         # cV = np.linalg.cholesky(V)
         F = np.random.multivariate_normal(mean=np.zeros(Nb), cov=np.eye(Nb), size=Nf)
         
-        print "F:", F.shape
-        print "V:", V.shape
+
 
 
 
@@ -297,10 +298,10 @@ class AcquisitionGES(AcquisitionBase):
         # print "funcs:", funcs.shape
 
         funcs = funcs.reshape(funcs.shape[0], funcs.shape[1] * funcs.shape[2])
-        # print "funcs:", funcs.shape
 
         # Determine the minima for each function sample
         mins = np.argmin(funcs, axis=0)
+
         c = np.bincount(mins)
 
         # Count how often each representer point was the minimum
@@ -308,6 +309,12 @@ class AcquisitionGES(AcquisitionBase):
         min_count[:len(c)] += c
         pmin = (min_count / funcs.shape[1])
         pmin[np.where(pmin < 1e-70)] = 1e-70
+
+        # print "funcs:", funcs
+        # print "mins:", mins
+        # print "c:", c
+        # print "min_count: ", min_count
+        # print "pmin:", pmin
 
         # print "pmin:", pmin
 
