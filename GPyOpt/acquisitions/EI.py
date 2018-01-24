@@ -25,7 +25,7 @@ class AcquisitionEI(AcquisitionBase):
         self.optimizer = optimizer
         super(AcquisitionEI, self).__init__(model, space, optimizer, cost_withGradients=cost_withGradients)
         self.jitter = jitter
-        
+
     @staticmethod
     def fromConfig(model, space, optimizer, cost_withGradients, config):
         return AcquisitionEI(model, space, optimizer, cost_withGradients, jitter=config['jitter'])
@@ -42,13 +42,17 @@ class AcquisitionEI(AcquisitionBase):
 
         m, s = self.model.predict(x)
         fmin = self.model.get_fmin()
-        phi, Phi, _ = get_quantiles(self.jitter, fmin, m, s)    
-        f_acqu = (fmin - m + self.jitter) * Phi + s * phi
+
+        # phi, Phi, _ = get_quantiles(self.jitter, fmin, m, s)    
+        # f_acqu = (fmin - m + self.jitter) * Phi + s * phi
 
         # print "f_acqu.shape: ", f_acqu.shape
 
         # if f_acqu.shape[0] < 2:
         # print "f_acqu: ", np.sum(np.sum(f_acqu))
+
+        phi, Phi, u = get_quantiles(self.jitter, fmin, m, s)
+        f_acqu = s * (u * Phi + phi)
 
         return f_acqu
 
@@ -58,7 +62,7 @@ class AcquisitionEI(AcquisitionBase):
         """
         fmin = self.model.get_fmin()
         m, s, dmdx, dsdx = self.model.predict_withGradients(x)
-        phi, Phi, _ = get_quantiles(self.jitter, fmin, m, s)    
-        f_acqu = (fmin - m + self.jitter) * Phi + s * phi        
+        phi, Phi, u = get_quantiles(self.jitter, fmin, m, s)
+        f_acqu = s * (u * Phi + phi)
         df_acqu = dsdx * phi - Phi * dmdx
         return f_acqu, df_acqu

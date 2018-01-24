@@ -13,8 +13,7 @@ from . import interface
 from . import models
 from . import acquisitions
 from . import optimization
-from . import objective_examples 
+from . import objective_examples
 from . import objective_examples as fmodels
-
 
 from .__version__ import __version__

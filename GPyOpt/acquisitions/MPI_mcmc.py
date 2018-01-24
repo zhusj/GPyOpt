@@ -23,20 +23,20 @@ class AcquisitionMPI_MCMC(AcquisitionMPI):
 
     def __init__(self, model, space, optimizer=None, cost_withGradients=None, jitter=0.01):
         super(AcquisitionMPI_MCMC, self).__init__(model, space, optimizer, cost_withGradients, jitter)
-        
+
         assert self.model.MCMC_sampler, 'Samples from the hyper-parameters are needed to compute the integrated EI'
 
     def _compute_acq(self,x):
         """
         Integrated Expected Improvement
-        """    
+        """
         means, stds = self.model.predict(x)
         fmins = self.model.get_fmin()
         f_acqu = 0
         for m,s,fmin in zip(means, stds, fmins):
-            _, Phi, _ = get_quantiles(self.jitter, fmin, m, s)    
-            f_acqu = Phi
-        return f_acqu/(len(means))
+            _, Phi, _ = get_quantiles(self.jitter, fmin, m, s)
+            f_acqu += Phi
+        return f_acqu/len(means)
 
     def _compute_acq_withGradients(self, x):
         """
@@ -47,18 +47,13 @@ class AcquisitionMPI_MCMC(AcquisitionMPI):
         f_acqu = None
         df_acqu = None
         for m, s, fmin, dmdx, dsdx in zip(means, stds, fmins, dmdxs, dsdxs):
-            phi, Phi, u = get_quantiles(self.jitter, fmin, m, s)    
-            f_acqu =  Phi        
+            phi, Phi, u = get_quantiles(self.jitter, fmin, m, s)
+            f = Phi
             df = -(phi/s)* (dmdx + dsdx * u)
             if f_acqu is None:
-                f_acqu = f        
+                f_acqu = f
                 df_acqu = df
             else:
                 f_acqu += f
                 df_acqu += df
         return f_acqu/(len(means)), df_acqu/(len(means))
-        
-
-
-
-

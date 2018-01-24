@@ -4,7 +4,7 @@
 import numpy as np
 from scipy.special import erfc
 import time
-
+from ..core.errors import InvalidConfigError
 
 def compute_integrated_acquisition(acquisition,x):
     '''
@@ -13,16 +13,15 @@ def compute_integrated_acquisition(acquisition,x):
     :param acquisition: acquisition function with GpyOpt model type GP_MCMC.
     :param x: location where the acquisition is evaluated.
     '''
-    
-    acqu_x = 0 
 
-    for i in range(acquisition.model.num_hmc_samples): 
+    acqu_x = 0
+
+    for i in range(acquisition.model.num_hmc_samples):
         acquisition.model.model.kern[:] = acquisition.model.hmc_samples[i,:]
         acqu_x += acquisition.acquisition_function(x)
 
-    acqu_x = acqu_x/acquisition.model.num_hmc_samples   
+    acqu_x = acqu_x/acquisition.model.num_hmc_samples
     return acqu_x
-
 
 def compute_integrated_acquisition_withGradients(acquisition,x):
     '''
@@ -32,21 +31,22 @@ def compute_integrated_acquisition_withGradients(acquisition,x):
     :param x: location where the acquisition is evaluated.
     '''
 
-    acqu_x = 0 
-    d_acqu_x = 0 
+    acqu_x = 0
+    d_acqu_x = 0
 
     for i in range(acquisition.model.num_hmc_samples):
         acquisition.model.model.kern[:] = acquisition.model.hmc_samples[i,:]
-        acqu_x += acquisition.acquisition_function(x)
-        d_acqu_x += acquisition.acquisition_function(x)
+        acqu_x_sample, d_acqu_x_sample = acquisition.acquisition_function_withGradients(x)
+        acqu_x += acqu_x_sample
+        d_acqu_x += d_acqu_x_sample
 
-    acqu_x = acqu_x/acquisition.model.num_hmc_samples  
-    d_acqu_x = acqu_x/acquisition.model.num_hmc_samples 
+    acqu_x = acqu_x/acquisition.model.num_hmc_samples
+    d_acqu_x = d_acqu_x/acquisition.model.num_hmc_samples
 
     return acqu_x, d_acqu_x
 
 
-def best_gess(f,X):
+def best_guess(f,X):
     '''
     Gets the best current guess from a vector.
     :param f: function to evaluate.
@@ -63,8 +63,8 @@ def best_gess(f,X):
 def samples_multidimensional_uniform(bounds,num_data):
     '''
     Generates a multidimensional grid uniformly distributed.
-    :param bounds: tuple defining the box constrains.
-    :num_data: number of data to generate.
+    :param bounds: tuple defining the box constraints.
+    :num_data: number of data points to generate.
 
     '''
     dim = len(bounds)
@@ -73,18 +73,6 @@ def samples_multidimensional_uniform(bounds,num_data):
     # print 'dim: ', dim, bounds, num_data
     for k in range(0,dim): Z_rand[:,k] = np.random.uniform(low=bounds[k][0],high=bounds[k][1],size=num_data)
     return Z_rand
-
-
-def multigrid(bounds, Ngrid):
-    '''
-    Generates a multidimensional lattice
-    :param bounds: box constrains
-    :param Ngrid: number of points per dimension.
-    '''
-    if len(bounds)==1:
-        return np.linspace(bounds[0][0], bounds[0][1], Ngrid).reshape(Ngrid, 1)
-    xx = np.meshgrid(*[np.linspace(b[0], b[1], Ngrid) for b in bounds]) 
-    return np.vstack([x.flatten(order='F') for x in xx]).T
 
 
 def reshape(x,input_dim):
@@ -130,7 +118,7 @@ def get_quantiles(acquisition_par, fmin, m, s):
     :param acquisition_par: parameter of the acquisition function
     :param fmin: current minimum.
     :param m: vector of means.
-    :param s: vector of standard deviations. 
+    :param s: vector of standard deviations.
     '''
     if isinstance(s, np.ndarray):
         s[s<1e-10] = 1e-10
@@ -175,9 +163,40 @@ def evaluate_function(f,X):
     for i in range(num_data):
         time_zero = time.time()
         Y_eval[i,:] = f(X[i,:])
-        Y_time[i,:] = time.time() - time_zero 
+        Y_time[i,:] = time.time() - time_zero
     return Y_eval, Y_time
 
 
+def values_to_array(input_values):
+    '''
+    Transforms a values of int, float and tuples to a column vector numpy array
+    '''
+    if type(input_values)==tuple:
+        values = np.array(input_values).reshape(-1,1)
+    elif type(input_values) == np.ndarray:
+        values = np.atleast_2d(input_values)
+    elif type(input_values)==int or type(input_values)==float or type(np.int64):
+        values = np.atleast_2d(np.array(input_values))
+    else:
+        print('Type to transform not recognized')
+    return values
 
 
+def merge_values(values1,values2):
+    '''
+    Merges two numpy arrays by calculating all possible combinations of rows
+    '''
+    array1 = values_to_array(values1)
+    array2 = values_to_array(values2)
+
+    if array1.size == 0:
+        return array2
+    if array2.size == 0:
+        return array1
+
+    merged_array = []
+    for row_array1 in array1:
+        for row_array2 in array2:
+            merged_row = np.hstack((row_array1,row_array2))
+            merged_array.append(merged_row)
+    return np.atleast_2d(merged_array)
