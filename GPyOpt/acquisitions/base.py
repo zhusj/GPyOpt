@@ -37,9 +37,9 @@ class AcquisitionBase(object):
         f_acqu = self._compute_acq(x)
         cost_x, _ = self.cost_withGradients(x)
 
-        if cost_x.shape[0] !=  f_acqu.shape[0]:
-            cost_x = cost_x[:f_acqu.shape[0],:]
-            x = x[:f_acqu.shape[0],:]
+        # if cost_x.shape[0] !=  f_acqu.shape[0]:
+        #     cost_x = cost_x[:f_acqu.shape[0],:]
+        #     x = x[:f_acqu.shape[0],:]
 
         return -(f_acqu*self.space.indicator_constraints(x))/cost_x
     

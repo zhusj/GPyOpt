@@ -47,10 +47,14 @@ class Design_space(object):
     
     supported_types = ['continuous', 'discrete', 'bandit']
     
-    def __init__(self, space, constraints=None):
+    def __init__(self, space, constraints=None, A = None, b = None):
         self._complete_attributes(space)
         self.space_expanded = self._expand_attributes(self.space)
         self.constraints = constraints
+        self.A = A
+        self.b = b
+
+
 
         if self.has_types['bandit'] and (self.has_types['continuous'] or self.has_types['discrete']):
             print('Combinations of bandits with other variables are not supported.')
@@ -216,15 +220,34 @@ class Design_space(object):
         """
         x = np.atleast_2d(x)
         I_x = np.ones((x.shape[0],1))
+
+        global  A, b
+        A = self.A
+        b = self.b
+        # print A.shape
+
         if self.constraints != None:
             for d in self.constraints:
-                try:
-                    exec('constrain =  lambda x:' + d['constrain'],globals())
-                    ind_x = (constrain(x)<0)*1
-                    I_x *= ind_x.reshape(x.shape[0],1)
-                except:
-                    print('Fail to compile the constraint: '+str(d))
-                    raise
+                if self.A != None:
+                    try:
+                        idx = np.ones((x.shape[0],1))
+                        exec('constrain =  lambda x:' + d['constrain'],globals())
+                        ind_x = (constrain(x)<0)*1
+                        for col_num in xrange(0,x.shape[0]):
+                            if 0 in ind_x[:, col_num]:
+                                idx[col_num] = 0
+                        I_x *= idx.reshape(x.shape[0],1)
+                    except:
+                        print('Fail to compile the constraint: '+str(d))
+                        raise
+                else:
+                    try:
+                        exec('constrain =  lambda x:' + d['constrain'],globals())
+                        ind_x = (constrain(x)<0)*1
+                        I_x *= ind_x.reshape(x.shape[0],1)
+                    except:
+                        print('Fail to compile the constraint: '+str(d))
+                        raise
         return I_x
 
     def input_dim(self):

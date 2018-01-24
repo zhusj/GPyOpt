@@ -48,8 +48,9 @@ class AcquisitionGES(AcquisitionBase):
             # elif V< 1e-10:
             #     V = 1e-10
             # fmin = self.model.get_fmin()
-          
-            self.pmin = self.joint_pmin(m, V, 500)
+            number = 10000
+            print("number: ", number)          
+            self.pmin = self.joint_pmin(m, V, number)
             self.logP = np.log(self.pmin)
             # eps = 1e-9
             # H = -np.multiply(self.pmin, (self.logP+eps))
@@ -263,45 +264,35 @@ class AcquisitionGES(AcquisitionBase):
         np.ndarray(N,1)
             pmin distribution
         """
+        Nb = m.shape[0]
+        noise = 0
+        while(True):
+            try:
+                cV = np.linalg.cholesky(V + noise * np.eye(V.shape[0]))
+                break
+            except np.linalg.LinAlgError:
 
-        Nb = m.shape[0] 
+                if noise == 0:
+                    noise = 1e-10
+                if noise == 10000:
+                    raise np.linalg.LinAlgError('Cholesky '
+                        'decomposition failed.')
+                else:
+                    noise *= 10
 
-
-
-        # cV = np.linalg.cholesky(V)
+        # Draw new function samples from the innovated GP
+        # on the representer points
         F = np.random.multivariate_normal(mean=np.zeros(Nb), cov=np.eye(Nb), size=Nf)
-        
-
-
-
-
-        funcs = np.dot(V, F.T)
+        funcs = np.dot(cV, F.T)
         funcs = funcs[:, :, None]
 
         m = m[:, None, :]
         funcs = m + funcs
 
-
-
-        # m1 = m.reshape((Nb,))
-        # try:
-        #     funcs = np.random.multivariate_normal(mean=m1, cov=V, size=Nf)
-        # except np.linalg.LinAlgError:
-        #     print "m1, V, Nf: ", m1, V, Nf
-        # funcs = funcs.T
-        # # print "funcs:", funcs
-        # # funcs = np.dot(cV, F.T)
-        # funcs = funcs[:, :, None]
-
-
-
-        # print "funcs:", funcs.shape
-
         funcs = funcs.reshape(funcs.shape[0], funcs.shape[1] * funcs.shape[2])
 
         # Determine the minima for each function sample
         mins = np.argmin(funcs, axis=0)
-
         c = np.bincount(mins)
 
         # Count how often each representer point was the minimum
@@ -310,14 +301,96 @@ class AcquisitionGES(AcquisitionBase):
         pmin = (min_count / funcs.shape[1])
         pmin[np.where(pmin < 1e-70)] = 1e-70
 
-        # print "funcs:", funcs
-        # print "mins:", mins
-        # print "c:", c
-        # print "min_count: ", min_count
-        # print "pmin:", pmin
-
-        # print "pmin:", pmin
-
-        # raw_input("press to continue...")
-
         return pmin
+
+        # Nb = m.shape[0] 
+        # # cV = np.linalg.cholesky(V)
+        # F = np.random.multivariate_normal(mean=np.zeros(Nb), cov=np.eye(Nb), size=Nf)
+        # funcs = np.dot(V, F.T)
+        # funcs = funcs[:, :, None]
+
+        # m = m[:, None, :]
+        # funcs = m + funcs
+        # # m1 = m.reshape((Nb,))
+        # # try:
+        # #     funcs = np.random.multivariate_normal(mean=m1, cov=V, size=Nf)
+        # # except np.linalg.LinAlgError:
+        # #     print "m1, V, Nf: ", m1, V, Nf
+        # # funcs = funcs.T
+        # # # print "funcs:", funcs
+        # # # funcs = np.dot(cV, F.T)
+        # # funcs = funcs[:, :, None]
+
+
+
+        # # print "funcs:", funcs.shape
+
+        # funcs = funcs.reshape(funcs.shape[0], funcs.shape[1] * funcs.shape[2])
+
+        # # Determine the minima for each function sample
+        # mins = np.argmin(funcs, axis=0)
+
+        # c = np.bincount(mins)
+
+        # # Count how often each representer point was the minimum
+        # min_count = np.zeros((Nb,))
+        # min_count[:len(c)] += c
+        # pmin = (min_count / funcs.shape[1])
+        # pmin[np.where(pmin < 1e-70)] = 1e-70
+
+        # # print "funcs:", funcs
+        # # print "mins:", mins
+        # # print "c:", c
+        # # print "min_count: ", min_count
+        # # print "pmin:", pmin
+
+        # # print "pmin:", pmin
+
+        # # raw_input("press to continue...")
+
+        # return pmin
+
+    def joint_pmax(self, m, V, Nf):
+        """
+        Computes the probability of every given point to be the minimum
+        by sampling function and count how often each point has the
+        smallest function value.
+        Parameters
+        ----------
+        M: np.ndarray(N, 1)
+            Mean value of each of the N points.
+        V: np.ndarray(N, N)
+            Covariance matrix for all points
+        Nf: int 
+            Number of function samples that will be drawn at each point
+        Returns
+        -------
+        np.ndarray(N,1)
+            pmin distribution
+        """
+
+        Nb = m.shape[0] 
+
+        # cV = np.linalg.cholesky(V)
+        F = np.random.multivariate_normal(mean=np.zeros(Nb), cov=np.eye(Nb), size=Nf)
+        
+        funcs = np.dot(V, F.T)
+        funcs = funcs[:, :, None]
+
+        m = m[:, None, :]
+        funcs = m + funcs
+
+        funcs = funcs.reshape(funcs.shape[0], funcs.shape[1] * funcs.shape[2])
+
+        # Determine the minima for each function sample
+        maxes = np.argmax(funcs, axis=0)
+
+        c = np.bincount(maxes)
+
+        # Count how often each representer point was the maximum
+        max_count = np.zeros((Nb,))
+        max_count[:len(c)] += c
+        pmax = (max_count / funcs.shape[1])
+        pmax[np.where(pmax < 1e-70)] = 1e-70
+
+        return pmax

@@ -107,14 +107,18 @@ class BO(object):
             # --- Update and optimize acquisition and compute the exploration level in the next evaluation
             self.suggested_sample = self._compute_next_evaluations()
             
-            if not ((self.num_acquisitions < self.max_iter)): # and (self._distance_last_evaluations() > self.eps)): 
+            # if not ((self.num_acquisitions < self.max_iter)): 
+            if not ((self.num_acquisitions < self.max_iter) and (self._distance_last_evaluations() > self.eps)): 
             # if not ((self.num_acquisitions < self.max_iter)): 
 
-                print "stoppping!!!\n"
+                # print "stoppping!!!\n"
 
                 break
 
             # --- Augment X
+
+            # print self.X.shape, self.suggested_sample.shape
+
             self.X = np.vstack((self.X,self.suggested_sample))
             
             # --- Evaluate *f* in X, augment Y and update cost function (if needed)

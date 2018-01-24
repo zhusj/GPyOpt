@@ -72,7 +72,7 @@ class BayesianOptimization(BO):
                 model_optimize_restarts, sparseGP, num_inducing and normalize can still be used but will be deprecated in the next version.
     """
 
-    def __init__(self, f, domain = None, constrains = None, cost_withGradients = None, model_type = 'GP', X = None, Y = None,
+    def __init__(self, f, domain = None, constrains = None, A = None, b= None, cost_withGradients = None, model_type = 'GP', X = None, Y = None,
     	initial_design_numdata = None, initial_design_type='random', acquisition_type ='EI', normalize_Y = True,
         exact_feval = False, acquisition_optimizer_type = 'lbfgs',acquisition_optimizer_n_samples = 1000, model_update_interval=1, evaluator_type = 'sequential',
         batch_size = 1, num_cores = 1, verbosity= True, verbosity_model = False, bounds=None, maximize=False, **kwargs):
@@ -162,7 +162,10 @@ class BayesianOptimization(BO):
                 self.domain = domain
 
         self.constrains = constrains
-        self.space = Design_space(self.domain, self.constrains)
+        self.A = A
+        self.b = b
+
+        self.space = Design_space(self.domain, self.constrains, self.A, self.b)
 
         # --- CHOOSE objective function
         self.maximize = maximize

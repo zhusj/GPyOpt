@@ -69,6 +69,8 @@ def samples_multidimensional_uniform(bounds,num_data):
     '''
     dim = len(bounds)
     Z_rand = np.zeros(shape=(num_data,dim))
+
+    # print 'dim: ', dim, bounds, num_data
     for k in range(0,dim): Z_rand[:,k] = np.random.uniform(low=bounds[k][0],high=bounds[k][1],size=num_data)
     return Z_rand
 
