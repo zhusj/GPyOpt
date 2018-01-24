@@ -1,14 +1,14 @@
 # Copyright (c) 2016, the GPyOpt Authors
 # Licensed under the BSD 3-clause license (see LICENSE.txt)
 
-<<<<<<< HEAD
-import GPy
-import numpy as np
-import time
-from ..acquisitions import AcquisitionEI, AcquisitionMPI, AcquisitionLCB, AcquisitionEI_MCMC, AcquisitionMPI_MCMC, AcquisitionLCB_MCMC, AcquisitionLP, AcquisitionGES
-=======
+# <<<<<<< HEAD
+# import GPy
+# import numpy as np
+# import time
+# from ..acquisitions import AcquisitionEI, AcquisitionMPI, AcquisitionLCB, AcquisitionEI_MCMC, AcquisitionMPI_MCMC, AcquisitionLCB_MCMC, AcquisitionLP, AcquisitionGES
+# =======
 from ..acquisitions import AcquisitionEI, AcquisitionMPI, AcquisitionLCB, AcquisitionEI_MCMC, AcquisitionMPI_MCMC, AcquisitionLCB_MCMC, AcquisitionLP
->>>>>>> 32b83c5e020490ff373f29428696ea0a409ca66e
+# >>>>>>> 32b83c5e020490ff373f29428696ea0a409ca66e
 from ..core.bo import BO
 from ..core.errors import InvalidConfigError
 from ..core.task.space import Design_space, bounds_to_space
